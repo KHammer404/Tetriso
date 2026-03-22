@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Modern Tetris - TETR.IO Logic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="app">
+      <div class="game-container">
+        <aside class="side-panel left">
+          <div class="panel-section">
+            <h2>HOLD</h2>
+            <div class="canvas-wrapper hold-wrapper">
+              <canvas id="hold-piece"></canvas>
+            </div>
+          </div>
+        </aside>
+
+        <main class="board-container">
+          <canvas id="game-board"></canvas>
+        </main>
+
+        <aside class="side-panel right">
+          <div class="panel-section">
+            <h2>NEXT</h2>
+            <div class="canvas-wrapper next-wrapper">
+              <canvas id="next-queue"></canvas>
+            </div>
+          </div>
+          <div class="panel-section stats">
+            <div class="stat-item">
+              <span class="label">SCORE</span>
+              <span id="score" class="value">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">LINES</span>
+              <span id="lines" class="value">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="label">LEVEL</span>
+              <span id="level" class="value">1</span>
+            </div>
+          </div>
+          <button id="settings-btn" class="secondary-btn">SETTINGS</button>
+        </aside>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+      <div class="modal-content glass">
+        <h2>SETTINGS</h2>
+        
+        <div class="settings-section">
+          <h3>GAME MODE</h3>
+          <div class="mode-buttons">
+            <button id="mode-marathon" class="primary-btn active">MARATHON</button>
+            <button id="mode-sprint" class="primary-btn">SPRINT (40L)</button>
+            <button id="mode-blitz" class="primary-btn">BLITZ (2M)</button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>HANDLING</h3>
+          <div class="handling-item">
+            <label>DAS (ms): <span id="das-val">160</span></label>
+            <input type="range" id="das-range" min="50" max="300" step="1" value="160">
+          </div>
+          <div class="handling-item">
+            <label>ARR (ms): <span id="arr-val">20</span></label>
+            <input type="range" id="arr-range" min="0" max="100" step="1" value="20">
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>KEY BINDINGS</h3>
+          <div id="key-bindings-list" class="bindings-list">
+            <!-- Populated by JavaScript -->
+          </div>
+        </div>
+        
+        <button id="close-settings" class="secondary-btn">CLOSE</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
