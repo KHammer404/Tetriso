@@ -189,4 +189,20 @@ export class Renderer {
 
     return '#' + RR + GG + BB;
   }
+
+  drawSmallBoard(canvas: HTMLCanvasElement, grid: any) {
+      if (!grid) return;
+      const ctx = canvas.getContext('2d')!;
+      const bSize = canvas.width / 10;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      for (let y = GAME_CONFIG.BUFFER_HEIGHT; y < grid.length; y++) {
+          for (let x = 0; x < grid[y].length; x++) {
+              if (grid[y][x]) {
+                  ctx.fillStyle = COLORS[grid[y][x] as PieceType] || '#555';
+                  ctx.fillRect(x * bSize, (y - GAME_CONFIG.BUFFER_HEIGHT) * bSize, bSize - 1, bSize - 1);
+              }
+          }
+      }
+  }
 }

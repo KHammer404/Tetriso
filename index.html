@@ -10,12 +10,39 @@
   </head>
   <body>
     <div id="app">
-      <div class="game-container">
+      <!-- Lobby Overlay -->
+      <div id="lobby" class="lobby glass">
+        <div class="lobby-content">
+          <h1 class="logo-text">TETRISO <span>MASSIVE</span></h1>
+          <div class="lobby-inputs">
+            <input type="text" id="username-input" placeholder="USERNAME" maxlength="12">
+            <input type="text" id="room-input" placeholder="ROOM CODE" maxlength="6">
+            <button id="join-btn" class="primary-btn pulse">JOIN ROOM</button>
+          </div>
+          <div id="room-lobby" class="room-lobby hidden">
+            <div class="player-list-container">
+              <h3>ROOM: <span id="display-room-code">---</span></h3>
+              <div id="player-list" class="player-list">
+                <!-- Players will be listed here -->
+              </div>
+            </div>
+            <button id="start-game-btn" class="primary-btn glow hidden">START GAME</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="game-container hidden">
         <aside class="side-panel left">
           <div class="panel-section">
             <h2>HOLD</h2>
             <div class="canvas-wrapper hold-wrapper">
               <canvas id="hold-piece"></canvas>
+            </div>
+          </div>
+          <div class="panel-section stats" style="margin-top: 20px;">
+            <div class="stat-item">
+              <span class="label" style="color: #ff3333; text-shadow: 0 0 5px #ff3333;">INCOMING</span>
+              <span id="pending-garbage" class="value" style="color: #ff3333; text-shadow: 0 0 10px #ff3333;">0</span>
             </div>
           </div>
         </aside>
@@ -84,6 +111,17 @@
         </div>
         
         <button id="close-settings" class="secondary-btn">CLOSE</button>
+      </div>
+    </div>
+    
+    <!-- Results Modal -->
+    <div id="results-modal" class="modal hidden">
+      <div class="modal-content glass">
+        <h2 id="results-title">GAME ENDED</h2>
+        <div id="ranking-list" class="ranking-list">
+          <!-- Populated by JS -->
+        </div>
+        <button id="back-to-lobby" class="primary-btn">BACK TO LOBBY</button>
       </div>
     </div>
 

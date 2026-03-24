@@ -1,4 +1,4 @@
-export type PieceType = 'I' | 'J' | 'L' | 'O' | 'S' | 'T' | 'Z';
+export type PieceType = 'I' | 'J' | 'L' | 'O' | 'S' | 'T' | 'Z' | 'X';
 
 export const COLORS: Record<PieceType | 'G', string> = {
   I: '#00ccff',
@@ -9,6 +9,7 @@ export const COLORS: Record<PieceType | 'G', string> = {
   T: '#cc00ff',
   Z: '#ff0000',
   G: '#333333', // Ghost
+  X: '#555555'  // Garbage
 };
 
 export type KeyAction = 
@@ -68,6 +69,9 @@ export const SHAPES: Record<PieceType, number[][]> = {
     [0, 1, 1],
     [0, 0, 0],
   ],
+  X: [
+    [1]
+  ]
 };
 
 // SRS Wall-Kick Tables

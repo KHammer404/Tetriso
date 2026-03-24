@@ -3,13 +3,21 @@ import { GameLogic } from './engine/GameLogic';
 import { InputHandler } from './engine/InputHandler';
 import { Renderer } from './ui/Renderer';
 import { DEFAULT_KEYS, COLORS } from './constants';
-import type { KeyAction, PieceType } from './constants';
+import type { KeyAction } from './constants';
+
+import { io, Socket } from 'socket.io-client';
 
 class App {
   game: GameLogic;
   renderer: Renderer;
   input: InputHandler;
   
+  // Networking
+  socket: Socket | null = null;
+  username = '';
+  roomCode = '';
+  opponents: Map<string, { username: string, board: any, alive: boolean }> = new Map();
+
   lastDropTime = 0;
   lastFrameTime = 0;
   dropInterval = 1000;
@@ -38,11 +46,138 @@ class App {
     this.input = new InputHandler(
       this.keyBindings,
       (action) => this.handleAction(action),
-      (action) => this.handleAction(action) // OnHold also calls handleAction
+      (action) => this.handleAction(action)
     );
 
+    this.initLobby();
     this.initSettings();
     this.startLoop();
+  }
+
+  initLobby() {
+    const joinBtn = document.getElementById('join-btn')!;
+    const startBtn = document.getElementById('start-game-btn')!;
+    const usernameInput = document.getElementById('username-input') as HTMLInputElement;
+    const roomInput = document.getElementById('room-input') as HTMLInputElement;
+    const roomLobby = document.getElementById('room-lobby')!;
+
+    joinBtn.onclick = () => {
+        this.username = usernameInput.value || `Player${Math.floor(Math.random()*1000)}`;
+        this.roomCode = roomInput.value || '1234';
+        
+        this.socket = io('http://localhost:3001');
+        this.setupSocketListeners();
+        this.socket.emit('joinRoom', { username: this.username, roomCode: this.roomCode });
+        
+        document.querySelector('.lobby-inputs')!.classList.add('hidden');
+        roomLobby.classList.remove('hidden');
+        document.getElementById('display-room-code')!.textContent = this.roomCode;
+    };
+
+    startBtn.onclick = () => {
+        if (this.socket) this.socket.emit('startGame', this.roomCode);
+    };
+
+    document.getElementById('back-to-lobby')!.onclick = () => {
+        document.getElementById('results-modal')!.classList.add('hidden');
+        document.getElementById('lobby')!.classList.remove('hidden');
+        document.querySelector('.game-container')!.classList.add('hidden');
+        document.querySelector('.lobby-inputs')!.classList.remove('hidden');
+        roomLobby.classList.add('hidden');
+    };
+  }
+
+  setupSocketListeners() {
+      if (!this.socket) return;
+
+      this.socket.on('roomUpdate', (players: any[]) => {
+          const playerList = document.getElementById('player-list')!;
+          playerList.innerHTML = '';
+          players.forEach((p: any) => {
+              const div = document.createElement('div');
+              div.className = 'player-bubble';
+              div.textContent = p.username;
+              playerList.appendChild(div);
+
+              if (this.socket && p.id !== this.socket.id) {
+                  const existing = this.opponents.get(p.id) || { board: null, alive: true, username: '' };
+                  this.opponents.set(p.id, { ...existing, username: p.username, alive: p.alive });
+              }
+          });
+          
+          if (players.length > 0 && players[0].id === this.socket?.id) {
+              document.getElementById('start-game-btn')!.classList.remove('hidden');
+          }
+      });
+
+      this.socket.on('gameStart', () => {
+          document.getElementById('lobby')!.classList.add('hidden');
+          document.querySelector('.game-container')!.classList.remove('hidden');
+          this.opponents.forEach(op => op.alive = true);
+          this.resetGame();
+      });
+
+      this.socket.on('opponentBoardUpdate', ({ id, board }) => {
+          const op = this.opponents.get(id);
+          if (op) {
+              op.board = board;
+              op.alive = true;
+          }
+          this.updateOpponentBoardsUI();
+      });
+
+      this.socket.on('receiveGarbage', ({ amount }) => {
+          console.log('Received garbage:', amount);
+          this.game.receiveGarbage(amount);
+      });
+
+      this.socket.on('playerKO', ({ id, rank }) => {
+          const op = this.opponents.get(id);
+          if (op) op.alive = false;
+          if (id === this.socket?.id) {
+              this.game.isGameOver = true;
+              this.showGameOver(rank);
+          }
+      });
+
+      this.socket.on('gameEnd', ({ winner }) => {
+          this.showResults(winner);
+      });
+  }
+
+  showGameOver(rank: number) {
+      const title = document.getElementById('results-title')!;
+      title.textContent = `FINISHED #${rank}`;
+      document.getElementById('results-modal')!.classList.remove('hidden');
+  }
+
+  showResults(winner: string) {
+      const title = document.getElementById('results-title')!;
+      title.textContent = `WINNER: ${winner}`;
+      document.getElementById('results-modal')!.classList.remove('hidden');
+  }
+
+  updateOpponentBoardsUI() {
+      let grid = document.getElementById('opponent-boards');
+      if (!grid) {
+          grid = document.createElement('div');
+          grid.id = 'opponent-boards';
+          grid.className = 'opponent-boards';
+          document.querySelector('.game-container')!.appendChild(grid);
+      }
+
+      this.opponents.forEach((op, id) => {
+          let el = document.getElementById(`op-${id}`);
+          if (!el) {
+              el = document.createElement('div');
+              el.id = `op-${id}`;
+              el.className = 'opponent-item';
+              el.innerHTML = `<canvas class="opponent-canvas" width="60" height="120"></canvas><div class="opponent-name">${op.username}</div>`;
+              grid!.appendChild(el);
+          }
+          const canvas = el.querySelector('canvas')!;
+          this.renderer.drawSmallBoard(canvas, op.board);
+      });
   }
 
   loadKeyBindings(): Record<KeyAction, string> {
@@ -187,12 +322,8 @@ class App {
 
   startLoop() {
     const loop = (time = 0) => {
-      if (this.game.isGameOver) {
-        alert('Game Over! Score: ' + this.game.score);
-        return;
-      }
 
-      if (!this.isPaused) {
+      if (!this.isPaused && this.game.isAlive) {
         const dt = (time - this.lastFrameTime) / 1000;
         this.lastFrameTime = time;
 
@@ -204,7 +335,6 @@ class App {
           this.lastDropTime = time;
         }
         
-        const wasGrounded = this.game.isGrounded();
         const prevPiece = this.game.currentPiece;
         this.game.updateLockDelay();
         this.game.tick(dt);
@@ -212,16 +342,6 @@ class App {
         if (this.game.currentPiece !== prevPiece) {
             this.onPieceLock();
         }
-        if (wasGrounded && !this.game.isGrounded()) {
-            // Un-grounded by move/rotate
-        } else if (!wasGrounded && this.game.isGrounded()) {
-            // Just touched ground
-        }
-        
-        // Check if piece locked (currentPiece changed)
-        // We can track this more reliably by checking a flag or comparing types
-        // For now, let's simplify and call a hook in GameLogic or check here
-        
         this.input.update();
         
         const ghostY = this.game.board.getGhostY(this.game.currentPiece);
@@ -241,12 +361,23 @@ class App {
     document.getElementById('score')!.textContent = this.game.score.toString();
     document.getElementById('lines')!.textContent = this.game.lines.toString();
     document.getElementById('level')!.textContent = this.game.level.toString();
+    
+    const pendingEl = document.getElementById('pending-garbage');
+    if (pendingEl) {
+        pendingEl.textContent = this.game.pendingGarbage.toString();
+        if (this.game.pendingGarbage > 0) {
+            pendingEl.parentElement!.classList.add('warning-pulse');
+        } else {
+            pendingEl.parentElement!.classList.remove('warning-pulse');
+        }
+    }
   }
 
   resetGame() {
       const mode = this.game.mode;
       this.game = new GameLogic();
       this.game.mode = mode;
+      this.game.isAlive = true;
       this.lastDropTime = performance.now();
       this.lastFrameTime = performance.now();
       this.isPaused = false;
@@ -283,6 +414,34 @@ class App {
       const result = this.game.lastResult;
       this.initAudio();
       
+      console.log('Piece locked. Attack calculated:', result.attack, 'Lines:', result.lines);
+
+      // Process pending garbage FIRST so the updated board is broadcasted
+      this.game.processGarbage();
+
+      // Networking
+      if (this.socket) {
+          this.socket.emit('updateBoard', { 
+              roomCode: this.roomCode, 
+              board: this.game.board.grid 
+          });
+          
+          if (result.attack > 0) {
+              console.log('Sending garbage:', result.attack);
+              this.socket.emit('sendGarbage', { 
+                  roomCode: this.roomCode, 
+                  amount: result.attack 
+              });
+          }
+      }
+
+      if (this.game.isGameOver) {
+          this.game.isAlive = false;
+          if (this.socket) {
+              this.socket.emit('gameOver', { roomCode: this.roomCode });
+          }
+      }
+
       const pieceColor = COLORS[result.pieceType];
       
       // Sound

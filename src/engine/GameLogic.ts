@@ -28,12 +28,18 @@ export class GameLogic {
   b2bActive = false;
   lastActionWasRotate = false;
   spinStatus: 'none' | 'mini' | 'normal' = 'none';
+  
+  // Multiplayer state
+  isAlive = true;
+  garbageQueue: number[] = [];
+  pendingGarbage = 0;
 
   lastResult: { 
     lines: number, 
     spin: 'none' | 'mini' | 'normal',
-    pieceType: PieceType
-  } = { lines: 0, spin: 'none', pieceType: 'T' };
+    pieceType: PieceType,
+    attack: number
+  } = { lines: 0, spin: 'none', pieceType: 'T', attack: 0 };
 
   // Lock Delay state
   lockDelayActive = false;
@@ -206,7 +212,9 @@ export class GameLogic {
   hardDrop() {
     const dist = this.board.getGhostY(this.currentPiece) - this.currentPiece.y;
     this.currentPiece.y += dist;
-    this.lastActionWasRotate = false;
+    if (dist > 0) {
+        this.lastActionWasRotate = false;
+    }
     this.lock();
   }
 
@@ -216,9 +224,9 @@ export class GameLogic {
     
     this.board.lockPiece(this.currentPiece);
     const cleared = this.board.clearLines();
-    this.updateScore(cleared);
     
-    this.lastResult = { lines: cleared, spin: this.spinStatus, pieceType: pType };
+    this.lastResult = { lines: cleared, spin: this.spinStatus, pieceType: pType, attack: 0 };
+    this.updateScore(cleared);
     
     this.currentPiece = this.spawnPiece();
     this.holdUsed = false;
@@ -239,28 +247,57 @@ export class GameLogic {
     }
     
     let baseScore = 0;
+    let attack = 0;
     const isSpin = this.spinStatus !== 'none';
     const isTetris = lines === 4;
 
     if (isSpin) {
-      if (lines === 1) baseScore = 800;
-      else if (lines === 2) baseScore = 1200;
-      else if (lines === 3) baseScore = 1600;
+      if (lines === 1) { baseScore = 800; attack = 2; }
+      else if (lines === 2) { baseScore = 1200; attack = 4; }
+      else if (lines === 3) { baseScore = 1600; attack = 6; }
       else baseScore = 400; 
     } else {
       const multi = [0, 100, 300, 500, 800];
+      const attackMulti = [0, 0, 1, 2, 4];
       baseScore = multi[lines];
+      attack = attackMulti[lines];
     }
 
     if (isSpin || isTetris) {
-      if (this.b2bActive) baseScore *= 1.5;
+      if (this.b2bActive) {
+          baseScore *= 1.5;
+          attack += 1;
+      }
       this.b2bActive = true;
     } else {
       this.b2bActive = false;
     }
 
+    // Combo attack
+    if (this.comboCount > 0) {
+        attack += Math.floor(this.comboCount / 2);
+    }
+
     baseScore += this.comboCount * 50 * this.level;
     this.score += baseScore * this.level;
     this.level = Math.floor(this.lines / 10) + 1;
+    
+    // Counter garbage with attack
+    while (this.pendingGarbage > 0 && attack > 0) {
+        this.pendingGarbage--;
+        attack--;
+    }
+
+    this.lastResult.attack = attack;
+  }
+
+  receiveGarbage(amount: number) {
+      this.pendingGarbage += amount;
+  }
+
+  processGarbage() {
+      if (this.pendingGarbage <= 0) return;
+      this.board.addGarbage(this.pendingGarbage);
+      this.pendingGarbage = 0;
   }
 }
