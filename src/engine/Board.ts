@@ -75,10 +75,10 @@ export class Board {
   }
 
   addGarbage(count: number) {
+      const hole = Math.floor(Math.random() * this.width);
       for (let i = 0; i < count; i++) {
           this.grid.shift();
           const row = new Array(this.width).fill('X');
-          const hole = Math.floor(Math.random() * this.width);
           row[hole] = null;
           this.grid.push(row);
       }

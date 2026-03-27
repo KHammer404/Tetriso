@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Modern Tetris - TETR.IO Logic</title>
+    <title>TETRISO MASSIVE</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -16,15 +16,19 @@
           <h1 class="logo-text">TETRISO <span>MASSIVE</span></h1>
           <div class="lobby-inputs">
             <input type="text" id="username-input" placeholder="USERNAME" maxlength="12">
+            <button id="solo-btn" class="primary-btn solo-btn">PLAY SOLO</button>
+            <div class="lobby-divider">— MULTIPLAYER —</div>
             <input type="text" id="room-input" placeholder="ROOM CODE" maxlength="6">
+            <input type="text" id="server-input" placeholder="SERVER URL (기본: localhost:3001)" class="server-input">
             <button id="join-btn" class="primary-btn pulse">JOIN ROOM</button>
           </div>
           <div id="room-lobby" class="room-lobby hidden">
             <div class="player-list-container">
-              <h3>ROOM: <span id="display-room-code">---</span></h3>
-              <div id="player-list" class="player-list">
-                <!-- Players will be listed here -->
+              <div class="room-header">
+                <h3>ROOM: <span id="display-room-code">---</span></h3>
+                <button id="copy-link-btn" class="copy-btn">COPY INVITE</button>
               </div>
+              <div id="player-list" class="player-list"></div>
             </div>
             <button id="start-game-btn" class="primary-btn glow hidden">START GAME</button>
           </div>
@@ -43,6 +47,10 @@
             <div class="stat-item">
               <span class="label" style="color: #ff3333; text-shadow: 0 0 5px #ff3333;">INCOMING</span>
               <span id="pending-garbage" class="value" style="color: #ff3333; text-shadow: 0 0 10px #ff3333;">0</span>
+            </div>
+            <div class="stat-item" id="timer-stat">
+              <span class="label" id="timer-label">TIME</span>
+              <span id="timer" class="value timer-value">0:00</span>
             </div>
           </div>
         </aside>
@@ -81,7 +89,7 @@
     <div id="settings-modal" class="modal hidden">
       <div class="modal-content glass">
         <h2>SETTINGS</h2>
-        
+
         <div class="settings-section">
           <h3>GAME MODE</h3>
           <div class="mode-buttons">
@@ -104,23 +112,27 @@
         </div>
 
         <div class="settings-section">
-          <h3>KEY BINDINGS</h3>
-          <div id="key-bindings-list" class="bindings-list">
-            <!-- Populated by JavaScript -->
+          <h3>AUDIO</h3>
+          <div class="handling-item">
+            <label>VOLUME: <span id="vol-val">70</span>%</label>
+            <input type="range" id="vol-range" min="0" max="100" step="5" value="70">
           </div>
         </div>
-        
+
+        <div class="settings-section">
+          <h3>KEY BINDINGS</h3>
+          <div id="key-bindings-list" class="bindings-list"></div>
+        </div>
+
         <button id="close-settings" class="secondary-btn">CLOSE</button>
       </div>
     </div>
-    
+
     <!-- Results Modal -->
     <div id="results-modal" class="modal hidden">
       <div class="modal-content glass">
         <h2 id="results-title">GAME ENDED</h2>
-        <div id="ranking-list" class="ranking-list">
-          <!-- Populated by JS -->
-        </div>
+        <div id="ranking-list" class="ranking-list"></div>
         <button id="back-to-lobby" class="primary-btn">BACK TO LOBBY</button>
       </div>
     </div>
