@@ -14,13 +14,22 @@
       <div id="lobby" class="lobby glass">
         <div class="lobby-content">
           <h1 class="logo-text">TETRISO <span>MASSIVE</span></h1>
-          <div class="lobby-inputs">
+          <!-- 일반 로비 -->
+          <div class="lobby-inputs" id="normal-lobby">
             <input type="text" id="username-input" placeholder="USERNAME" maxlength="12">
             <button id="solo-btn" class="primary-btn solo-btn">PLAY SOLO</button>
             <div class="lobby-divider">— MULTIPLAYER —</div>
             <input type="text" id="room-input" placeholder="ROOM CODE" maxlength="6">
             <input type="text" id="server-input" placeholder="SERVER URL (기본: localhost:3001)" class="server-input">
             <button id="join-btn" class="primary-btn pulse">JOIN ROOM</button>
+          </div>
+
+          <!-- 초대링크로 들어왔을 때 빠른 참가 -->
+          <div class="lobby-inputs hidden" id="quick-join-lobby">
+            <div class="quick-join-room">ROOM <span id="quick-room-code">----</span></div>
+            <input type="text" id="quick-username-input" placeholder="USERNAME" maxlength="12">
+            <button id="quick-join-btn" class="primary-btn pulse">JOIN NOW</button>
+            <button id="quick-back-btn" class="secondary-btn" style="margin-top:4px;">일반 로비로</button>
           </div>
           <div id="room-lobby" class="room-lobby hidden">
             <div class="player-list-container">

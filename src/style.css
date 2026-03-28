@@ -448,6 +448,24 @@ h2 {
   border-radius: 2px;
 }
 
+/* Quick join room badge */
+.quick-join-room {
+  font-size: 0.8rem;
+  letter-spacing: 3px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.quick-join-room span {
+  color: #a000f0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  display: block;
+  letter-spacing: 6px;
+  text-shadow: 0 0 15px rgba(160, 0, 240, 0.6);
+  margin-top: 2px;
+}
+
 /* Lobby divider */
 .lobby-divider {
   font-size: 0.7rem;

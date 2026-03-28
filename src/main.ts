@@ -70,14 +70,53 @@ class App {
     const roomLobby = document.getElementById('room-lobby')!;
     const copyBtn = document.getElementById('copy-link-btn')!;
 
-    // Pre-fill from URL params (invite link)
+    // Restore saved username
+    const savedUsername = localStorage.getItem('tetris-username') || '';
+    usernameInput.value = savedUsername;
+
+    // Check URL params (invite link)
     const params = new URLSearchParams(window.location.search);
-    if (params.get('room')) roomInput.value = params.get('room')!;
-    if (params.get('server')) serverInput.value = decodeURIComponent(params.get('server')!);
+    const paramRoom = params.get('room');
+    const paramServer = params.get('server');
+
+    if (paramRoom) {
+      // Quick-join mode: switch to simplified UI
+      roomInput.value = paramRoom;
+      if (paramServer) serverInput.value = decodeURIComponent(paramServer);
+
+      document.getElementById('normal-lobby')!.classList.add('hidden');
+      document.getElementById('quick-join-lobby')!.classList.remove('hidden');
+      document.getElementById('quick-room-code')!.textContent = paramRoom.toUpperCase();
+
+      const quickUsernameInput = document.getElementById('quick-username-input') as HTMLInputElement;
+      quickUsernameInput.value = savedUsername;
+
+      // If username already saved → auto-join immediately
+      if (savedUsername) {
+        this.joinMultiplayer(savedUsername, paramRoom, paramServer ? decodeURIComponent(paramServer) : '', roomLobby);
+      } else {
+        quickUsernameInput.focus();
+      }
+
+      document.getElementById('quick-join-btn')!.onclick = () => {
+        const name = quickUsernameInput.value.trim() || `Player${Math.floor(Math.random() * 1000)}`;
+        this.joinMultiplayer(name, paramRoom, paramServer ? decodeURIComponent(paramServer) : '', roomLobby);
+      };
+
+      document.getElementById('quick-back-btn')!.onclick = () => {
+        document.getElementById('quick-join-lobby')!.classList.add('hidden');
+        document.getElementById('normal-lobby')!.classList.remove('hidden');
+        usernameInput.value = quickUsernameInput.value;
+      };
+    } else {
+      // Normal lobby
+      if (paramServer) serverInput.value = decodeURIComponent(paramServer);
+    }
 
     // Solo play
     soloBtn.onclick = () => {
       this.username = usernameInput.value.trim() || `Player${Math.floor(Math.random() * 1000)}`;
+      localStorage.setItem('tetris-username', this.username);
       this.isSolo = true;
       this.socket = null;
       document.getElementById('lobby')!.classList.add('hidden');
@@ -85,20 +124,12 @@ class App {
       this.resetGame();
     };
 
-    // Multiplayer join
+    // Normal multiplayer join
     joinBtn.onclick = () => {
-      this.username = usernameInput.value.trim() || `Player${Math.floor(Math.random() * 1000)}`;
-      this.roomCode = roomInput.value.trim() || '1234';
-      this.isSolo = false;
-
-      const serverUrl = serverInput.value.trim() || import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
-      this.socket = io(serverUrl);
-      this.setupSocketListeners();
-      this.socket.emit('joinRoom', { username: this.username, roomCode: this.roomCode });
-
-      document.querySelector('.lobby-inputs')!.classList.add('hidden');
-      roomLobby.classList.remove('hidden');
-      document.getElementById('display-room-code')!.textContent = this.roomCode;
+      const name = usernameInput.value.trim() || `Player${Math.floor(Math.random() * 1000)}`;
+      const room = roomInput.value.trim() || '1234';
+      const server = serverInput.value.trim();
+      this.joinMultiplayer(name, room, server, roomLobby);
     };
 
     startBtn.onclick = () => {
@@ -124,9 +155,31 @@ class App {
       document.getElementById('results-modal')!.classList.add('hidden');
       document.getElementById('lobby')!.classList.remove('hidden');
       document.querySelector('.game-container')!.classList.add('hidden');
-      document.querySelector('.lobby-inputs')!.classList.remove('hidden');
+      // Show whichever lobby section was active
+      if (paramRoom) {
+        document.getElementById('quick-join-lobby')!.classList.remove('hidden');
+      } else {
+        document.getElementById('normal-lobby')!.classList.remove('hidden');
+      }
       roomLobby.classList.add('hidden');
     };
+  }
+
+  private joinMultiplayer(username: string, roomCode: string, serverOverride: string, roomLobby: HTMLElement) {
+    this.username = username;
+    this.roomCode = roomCode;
+    this.isSolo = false;
+    localStorage.setItem('tetris-username', username);
+
+    const serverUrl = serverOverride || import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
+    this.socket = io(serverUrl);
+    this.setupSocketListeners();
+    this.socket.emit('joinRoom', { username: this.username, roomCode: this.roomCode });
+
+    document.getElementById('normal-lobby')!.classList.add('hidden');
+    document.getElementById('quick-join-lobby')!.classList.add('hidden');
+    roomLobby.classList.remove('hidden');
+    document.getElementById('display-room-code')!.textContent = this.roomCode;
   }
 
   setupSocketListeners() {
